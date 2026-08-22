@@ -8,6 +8,10 @@
 - Hardware: two RTX 3090 GPUs, two deterministic policy servers, sharded 32 states each.
 - Scope: these are official preprocessed training-demonstration states because the quick dataset supplies action targets but not val demonstrations. E8 will use simulator branches and environment outcomes; train geometry is not reported as val performance.
 - Pilot found numerical instability for states whose demonstration action MSE is already near zero. The full analysis will report aggregate paired probabilities and strata by baseline MSE.
+- Completed: 64/64 states, with 64 random controls at every nonzero radius.
+- Best descriptive grid point was 0.1%: P(Q+ > Q0)=56.25%, P(Q+ > Q-)=60.94%, and P(Q+ > Qrandom)=58.03%.
+- E7 did **not** pass: effects are weak and heterogeneous across tasks, and the mean Q change is near zero. No trust radius is promoted to E8 from this estimator.
+- Diagnosis: a 16-direction black-box finite-difference estimator is too noisy in a 512x2048 memory, especially under near-zero demonstration MSE. The next implementation step is an exact JAX VJP/autograd oracle direction, followed by the same fixed sweep.
 
 - Hardware: 2x RTX 3090 24GB.
 - Core unit tests: 4 passed.
