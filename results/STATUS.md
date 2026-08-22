@@ -13,6 +13,14 @@
 - E7 did **not** pass: effects are weak and heterogeneous across tasks, and the mean Q change is near zero. No trust radius is promoted to E8 from this estimator.
 - Diagnosis: a 16-direction black-box finite-difference estimator is too noisy in a 512x2048 memory, especially under near-zero demonstration MSE. The next implementation step is an exact JAX VJP/autograd oracle direction, followed by the same fixed sweep.
 
+## Compact E8 frozen-policy pilot (completed, 2026-08-22)
+
+- Scope: 4 RoboMME train tasks × 2 episodes × 4 paired conditions (`M`, `probe_plus`, `probe_minus`, norm-matched `random`) = 32 closed-loop branches.
+- Environment: deterministic simulator reconstruction, Mesa llvmpipe, 150-step cap, two policy servers/GPU shards.
+- Important label: `probe_plus`/`probe_minus` are fixed random rank-one memory probes at 0.025%; they are **not** return-gradient edits. This is a memory-causality/sensitivity harness only.
+- All four conditions had identical terminal SR: 25% (VideoUnmask 100% on its two episodes; the other three tasks 0% under this cap). Mean dense return was 0 for every condition.
+- Conclusion: no measurable condition effect. E9 return critic is not identifiable from this pilot because all returns are constant; E10 N-ablation is consequently deferred until a return-sensitive branch set and exact return-gradient editor exist.
+
 - Hardware: 2x RTX 3090 24GB.
 - Core unit tests: 4 passed.
 - Synthetic paired video-memory test (8 seeds, 8 particles):
