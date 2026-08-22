@@ -1,0 +1,11 @@
+[project]
+name = "trajmem-ot"
+version = "0.1.0"
+description = "Return-driven trajectory-memory optimization for video-conditioned VLA policies"
+requires-python = ">=3.10"
+dependencies = ["torch>=2.2", "numpy>=1.24", "pyyaml>=6"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
