@@ -3,6 +3,7 @@ import torch
 from trajmem_ot.core import MemoryEditConfig, optimize_memory_ot, sinkhorn
 from trajmem_ot.adapters import extract_robomme_history, replace_robomme_history
 from trajmem_ot.robomme_branch import observation_fingerprint
+from trajmem_ot.evaluation import select_trust_radius, summarize_memory_line_search, summarize_paired_return
 
 
 def test_sinkhorn_marginals():
@@ -58,3 +59,41 @@ def test_observation_fingerprint_is_content_sensitive():
     first = observation_fingerprint(observation)
     observation["front_rgb_list"][0][0, 0, 0] = 1
     assert observation_fingerprint(observation) != first
+
+
+def test_e7_selection_does_not_promote_failed_descriptive_radius():
+    rows = [
+        {"q0": 0.0, "sweep": [
+            {"rho": 0.0, "q_plus": 0.0, "q_minus": 0.0, "q_random": []},
+            {"rho": 0.001, "q_plus": 0.1, "q_minus": -0.1, "q_random": [0.0]},
+        ]},
+        {"q0": 0.0, "sweep": [
+            {"rho": 0.0, "q_plus": 0.0, "q_minus": 0.0, "q_random": []},
+            {"rho": 0.001, "q_plus": -0.1, "q_minus": 0.1, "q_random": [0.0]},
+        ]},
+    ]
+    summary = summarize_memory_line_search(rows)
+    assert summary[0]["p_positive_central_slope"] == 0.5
+    assert select_trust_radius(summary) is None
+
+
+def test_e7_selects_minimum_passing_low_energy_radius():
+    summaries = [
+        {"rho": 0.00003125, "p_positive_central_slope": 0.64, "median_delta_q": 1e-6},
+        {"rho": 0.000125, "p_positive_central_slope": 0.72, "median_delta_q": 2e-6},
+        {"rho": 0.00025, "p_positive_central_slope": 0.75, "median_delta_q": 5e-6},
+    ]
+    assert select_trust_radius(summaries) == 0.000125
+
+
+def test_e8_summary_uses_matched_branch_and_noise_pairs():
+    rows = []
+    for seed, base_success, plus_success in [(1, False, True), (2, True, True)]:
+        for condition, success in [("M", base_success), ("M_plus", plus_success)]:
+            rows.append({"task": "T", "episode": 0, "branch_step": 30, "noise_seed": seed,
+                         "condition": condition, "success": success,
+                         "return": float(success), "steps": 100})
+    report = summarize_paired_return(rows)
+    assert report["n_pairs"] == 2
+    assert report["by_condition"]["M_plus"]["success_rate"] == 1.0
+    assert report["paired_vs_baseline"]["M_plus"]["success_gains"] == 1
